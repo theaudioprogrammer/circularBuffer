@@ -21,7 +21,7 @@ CircularBufferAudioProcessor::CircularBufferAudioProcessor()
                       #endif
                        .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), parameters(*this, nullptr, "Parameters", createParameters())
 #endif
 {
 }
@@ -164,20 +164,20 @@ void CircularBufferAudioProcessor::fillDelayBuffer (int channel, const int buffe
     //copy the data from main buffer to delay buffer
     if (delayBufferLength > bufferLength + mWritePosition)
     {
-        mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferLength, 0.8, 0.8);
+        mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferLength, 0.1, 0.1);
     }
     else {
         const int bufferRemaining = delayBufferLength - mWritePosition;
         
-        mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferRemaining, 0.8, 0.8);
-        mDelayBuffer.copyFromWithRamp(channel, 0, bufferData, bufferLength - bufferRemaining, 0.8, 0.8);
+        mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferRemaining, 0.1, 0.1);
+        mDelayBuffer.copyFromWithRamp(channel, 0, bufferData, bufferLength - bufferRemaining, 0.1, 0.1);
     }
 }
 
 void CircularBufferAudioProcessor::getFromDelayBuffer (AudioBuffer<float>& buffer, int channel, const int bufferLength, const int delayBufferLength, const float* bufferData, const float* delayBufferData)
 {
-    int delayTime = 50;
-    const int readPosition =  static_cast<int> (delayBufferLength + mWritePosition - (mSampleRate * delayTime /1000)) % delayBufferLength;
+    float* delayTime = parameters.getRawParameterValue("Delay Time");
+    const int readPosition =  static_cast<int> (delayBufferLength + mWritePosition - (mSampleRate * (*delayTime) /1000)) % delayBufferLength;
     
     if (delayBufferLength > bufferLength + readPosition)
     {
@@ -196,15 +196,23 @@ void CircularBufferAudioProcessor::feedbackDelay (AudioBuffer<float>& buffer, in
     
     if (delayBufferLength > bufferLength + mWritePosition)
     {
-        mDelayBuffer.addFromWithRamp(channel, mWritePosition, dryBuffer, bufferLength, 0.8, 0.8);
+        mDelayBuffer.addFromWithRamp(channel, mWritePosition, dryBuffer, bufferLength, 0.8, 0.1);
     }
     else
     {
         const auto bufferRemaining = delayBufferLength - mWritePosition;
         
-        mDelayBuffer.addFromWithRamp(channel, bufferRemaining, dryBuffer, bufferRemaining, gain, gain);
-        mDelayBuffer.addFromWithRamp(channel, 0, dryBuffer, bufferLength - bufferRemaining, gain, gain);
+        mDelayBuffer.addFromWithRamp(channel, bufferRemaining, dryBuffer, bufferRemaining, 0.8, 0.1);
+        mDelayBuffer.addFromWithRamp(channel, 0, dryBuffer, bufferLength - bufferRemaining, 0.8, 0.1);
     }
+}
+
+AudioProcessorValueTreeState::ParameterLayout CircularBufferAudioProcessor::createParameters()
+{
+    std::vector <std::unique_ptr<RangedAudioParameter>> params;
+    params.push_back(std::make_unique<AudioParameterFloat> ("Delay Time", "delay time", 0.0f, 2000.0f, 0.0f));
+    
+    return { params.begin(), params.end() };
 }
 
 

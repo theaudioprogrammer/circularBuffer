@@ -15,9 +15,15 @@
 CircularBufferAudioProcessorEditor::CircularBufferAudioProcessorEditor (CircularBufferAudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (200, 200);
+    
+    delayTimeSlider.setSliderStyle(Slider::SliderStyle::RotaryVerticalDrag);
+    delayTimeSlider.setRange(0.0, 2000.0);
+    delayTimeSlider.setValue(0.0);
+    delayTimeSlider.setTextBoxStyle(Slider::TextBoxBelow, true, 50, 15);
+    addAndMakeVisible(delayTimeSlider);
+    
+    delayTimeVal = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(processor.parameters, "Delay Time", delayTimeSlider);
 }
 
 CircularBufferAudioProcessorEditor::~CircularBufferAudioProcessorEditor()
@@ -27,16 +33,25 @@ CircularBufferAudioProcessorEditor::~CircularBufferAudioProcessorEditor()
 //==============================================================================
 void CircularBufferAudioProcessorEditor::paint (Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
-
-    g.setColour (Colours::white);
-    g.setFont (15.0f);
-    g.drawFittedText ("Hello World!", getLocalBounds(), Justification::centred, 1);
+    g.fillAll(Colours::tan);
 }
 
 void CircularBufferAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+    Rectangle <int> bounds = getLocalBounds();
+    
+    FlexBox flexbox { FlexBox::Direction::row, FlexBox::Wrap::noWrap, FlexBox::AlignContent::stretch, FlexBox::AlignItems::stretch, FlexBox::JustifyContent::center };
+    
+    Array<FlexItem> items;
+    items.add(FlexItem(100, 100, delayTimeSlider));
+    flexbox.items = items;
+    
+    flexbox.performLayout(bounds);
+    
+    
+    
+    
+    
+    
+    
 }
