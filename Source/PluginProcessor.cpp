@@ -148,9 +148,11 @@ void CircularBufferAudioProcessor::processBlock (AudioBuffer<float>& buffer, Mid
     {
         const float* bufferData = buffer.getReadPointer(channel);
         const float* delayBufferData = mDelayBuffer.getReadPointer(channel);
+        float* dryBuffer = buffer.getWritePointer(channel);
         
         fillDelayBuffer(channel, bufferLength, delayBufferLength, bufferData, delayBufferData);
         getFromDelayBuffer(buffer, channel, bufferLength, delayBufferLength, bufferData, delayBufferData);
+        feedbackDelay(buffer, channel, bufferLength, delayBufferLength, bufferData, delayBufferData, dryBuffer);
     }
     
     mWritePosition += bufferLength;
@@ -187,6 +189,24 @@ void CircularBufferAudioProcessor::getFromDelayBuffer (AudioBuffer<float>& buffe
         buffer.addFrom(channel, bufferRemaining, delayBufferData, bufferLength - bufferRemaining);
     }
 }
+
+void CircularBufferAudioProcessor::feedbackDelay (AudioBuffer<float>& buffer, int channel, const int bufferLength, const int delayBufferLength, const float* bufferData, const float* delayBufferData, float* dryBuffer)
+{
+    const auto gain = 0.1;
+    
+    if (delayBufferLength > bufferLength + mWritePosition)
+    {
+        mDelayBuffer.addFromWithRamp(channel, mWritePosition, dryBuffer, bufferLength, 0.8, 0.8);
+    }
+    else
+    {
+        const auto bufferRemaining = delayBufferLength - mWritePosition;
+        
+        mDelayBuffer.addFromWithRamp(channel, bufferRemaining, dryBuffer, bufferRemaining, gain, gain);
+        mDelayBuffer.addFromWithRamp(channel, 0, dryBuffer, bufferLength - bufferRemaining, gain, gain);
+    }
+}
+
 
 //==============================================================================
 bool CircularBufferAudioProcessor::hasEditor() const
